@@ -1,1 +1,1 @@
-{"version":3,"file":"writeFile.d.ts","sourceRoot":"","sources":["writeFile.ts"],"names":[],"mappings":"AAEA,MAAM,CAAE,OAAO,UAAU,SAAS,CAAC,IAAI,EAAE,MAAM,EAAE,OAAO,EAAE,MAAM,UAW/D"}
+{"version":3,"file":"writeFile.d.ts","sourceRoot":"","sources":["writeFile.ts"],"names":[],"mappings":"AAEA,MAAM,CAAE,OAAO,UAAU,SAAS,CAAC,EAAE,IAAI,EAAE,OAAO,EAAE,EAAE;IAAE,IAAI,EAAE,MAAM,CAAC;IAAC,OAAO,EAAE,MAAM,CAAA;CAAE,UAWtF"}

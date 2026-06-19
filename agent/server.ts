@@ -1,6 +1,6 @@
 import express from 'express';
 import cors from 'cors';
-import agent from '../agent/agent.js';
+import { agent } from '../agent/agent.js';
 import { acceptEdit } from './core/applyEditActions.js';
 import { rejectEdit } from './core/rejectEditAction.js';
 

@@ -1,5 +1,5 @@
 import fs from "fs";
-export default function writeFile(path, content) {
+export default function writeFile({ path, content }) {
     const backupPath = path + ".backup";
     // backup first
     if (fs.existsSync(path)) {

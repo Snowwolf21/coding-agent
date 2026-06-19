@@ -1,5 +1,5 @@
 import dotenv from "dotenv";
-import agent from "./agent.js";
+import { agent } from "./agent.js";
 import ReadLine from "node:readline";
 import { llm } from "./client.js";
 import { fileURLToPath } from "node:url";
@@ -14,7 +14,7 @@ async function main() {
     console.log(response.text);
 }
 main().catch(console.error);
-agent("What is the meaning of life?").catch(console.error);
+agent(["What is the meaning of life?"]).catch(console.error);
 // ...rest of your readline code...
 // ✅ Clean Node.js Native Entrypoint Verification Check
 const currentFilePath = fileURLToPath(import.meta.url);
@@ -37,7 +37,7 @@ if (isCurrentEntryScript) {
             }
             try {
                 console.log("⏳ Processing request...");
-                await agent(userInput);
+                await agent([userInput]);
             }
             catch (error) {
                 console.error("❌ Agent execution error:", error);

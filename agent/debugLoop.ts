@@ -1,5 +1,5 @@
 import { runCommand } from "./tools/terminal.js";
-import  runAgent  from "../agent/agent.js";
+import  {agent}  from "../agent/agent.js";
 import { agentState} from  "./state.js";
 
 export async function debugLoop(command: string) {
@@ -27,14 +27,14 @@ export async function debugLoop(command: string) {
 
     console.log("❌ Error detected → calling AI fix");
 
-    await runAgent(
-      `A command failed:${command}
+    await agent(
+      [`A command failed:${command}
 
 Error:
 ${output}
 
 Fix the codebase step-by-step and ensure it runs successfully.
-      `,
+      `],
     );
   }
 

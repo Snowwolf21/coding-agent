@@ -1,6 +1,6 @@
 import fs from "fs";
 
-export  default function writeFile(path: string, content: string) {
+export  default function writeFile({ path, content }: { path: string; content: string }) {
   const backupPath = path + ".backup";
 
   // backup first

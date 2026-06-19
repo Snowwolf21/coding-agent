@@ -12,10 +12,11 @@ import { gitCommit, gitStatus } from "../tools/git.js";
 type ToolFn = (args: any) => Promise<any> | string;
 
 export const toolRegistry: Record<string, ToolFn> = {
-  read_file: ({ path }) => readFile(path),
+   readFile: ({ filePath }) =>
+    readFile(filePath),
 
-  write_file: ({ path, content }) =>
-    writeFile(path, content),
+  writeFile: ({ path, content }) =>
+    writeFile({path, content}),
 
   run_command: async ({ command }) =>
     await runCommand(command),
@@ -36,9 +37,11 @@ add_import: async ({
   moduleSpecifier,
 }) => {
   return await addImport(
-    filePath,
+ 
+     filePath,
     importName,
     moduleSpecifier
+ 
   );
 },
  run_tests: async () => {

@@ -8,8 +8,8 @@ import { addImport } from "../tools/astEdit.js";
 import { runTests } from "../tools/runTests.js";
 import { gitCommit, gitStatus } from "../tools/git.js";
 export const toolRegistry = {
-    read_file: ({ path }) => readFile(path),
-    write_file: ({ path, content }) => writeFile(path, content),
+    readFile: ({ filePath }) => readFile(filePath),
+    writeFile: ({ path, content }) => writeFile({ path, content }),
     run_command: async ({ command }) => await runCommand(command),
     analyze_working_tree: async () => {
         return analyzeWorkingTree();

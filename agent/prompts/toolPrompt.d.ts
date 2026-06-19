@@ -1,0 +1,2 @@
+export declare const toolPrompt = "Respond ONLY in JSON:\n\n{\n  \"type\": \"tool_call\",\n  \"tool\": \"readFile\",\n  \"arguments\": {\n    \"filePath\": \"...\"\n  }\n}\n\nOR\n\n{\n  \"type\": \"final\",\n  \"content\": \"...\"\n} ";
+//# sourceMappingURL=toolPrompt.d.ts.map
