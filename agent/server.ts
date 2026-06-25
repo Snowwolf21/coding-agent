@@ -76,7 +76,7 @@ app.post("/chat", async (req, res) => {
 
     res.json({
       success: true,
-      content: JSON.stringify(result.content),
+      content:result.content,
       editId: latestSuggestion?.id,
     });
   } catch (error: any) {

@@ -13,10 +13,11 @@ import "./App.css";
 
 declare global {
   interface Window {
-    monaco?: any;
-    require?: any;
+    monaco?: Record<string, unknown>;
+    require?: (dependencies: string[], callback: (...modules: unknown[]) => void) => void;
   }
 }
+
 
 
 
