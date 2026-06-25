@@ -63,23 +63,26 @@ app.post("/orchestrate", async (req, res) => {
 app.post("/chat", async (req, res) => {
   try {
     const { prompt } = req.body;
+
     const result = await agent([
-      { role: "user", content: prompt },
+      {
+        role: "user",
+        content: prompt,
+      },
     ]);
 
-    // Return the latest edit suggestion ID (if any was staged during the run)
-    const latestSuggestion = agentState.project.suggestions.at(-1);
-    const editId = latestSuggestion ? latestSuggestion.id : undefined;
+    const latestSuggestion =
+      agentState.project.suggestions.at(-1);
 
-    return res.json({
-      success: result.success ?? true,
-      message: result.content ?? "",
-      editId
+    res.json({
+      success: true,
+      content: JSON.stringify(result.content),
+      editId: latestSuggestion?.id,
     });
-  } catch (err: any) {
-    return res.status(500).json({
+  } catch (error: any) {
+    res.status(500).json({
       success: false,
-      message: err.message,
+      error: error.message,
     });
   }
 });
