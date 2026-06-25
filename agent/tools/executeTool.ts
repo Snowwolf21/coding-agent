@@ -1,4 +1,4 @@
-import { toolRegistry } from "./toolRegistry.js";
+import { toolRegistry } from "../core/toolRegistry.js";
 
 export async function executeTool(
   tool: string,

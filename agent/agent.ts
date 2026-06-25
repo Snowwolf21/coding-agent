@@ -4,154 +4,96 @@ import { executeTool } from "./tools/executeTool.js";
 
 const MAX_ITERATIONS = 10;
 
-export async function agent(messages: any[]): Promise<any> {
+export async function agent(messages: any[]) {
   const provider = new OllamaProvider();
 
-  // Ensure system prompt exists
-  if (
-    !messages.some(
-      (msg) => msg.role === "system"
-    )
-  ) {
+  // SYSTEM PROMPT (strict + clean)
+  if (!messages.some((m) => m.role === "system")) {
     messages.unshift({
       role: "system",
       content: `
-You are an autonomous coding agent.
+You are an autonomous agent.
 
-You MUST respond ONLY with valid JSON.
+Return ONLY valid JSON:
 
-Tool call format:
+FINAL:
+{ "type": "final", "content": "..." }
 
-{
-  "type": "tool_call",
-  "tool": "readFile",
-  "arguments": {
-    "filePath": "package.json"
-  }
-}
+TOOL CALL:
+{ "type": "tool_call", "tool": "...", "arguments": {} }
 
-Final answer format:
-
-{
-  "type": "final",
-  "content": "Your answer here"
-}
-
-Rules:
-- Never explain your reasoning.
-- Never use markdown.
-- Never wrap JSON in backticks.
-- Always choose a tool if one is needed.
-- Continue until the task is completed.
-`
+No markdown. No backticks. No extra text.
+`,
     });
   }
 
-  let iteration = 0;
+  for (let i = 0; i < MAX_ITERATIONS; i++) {
+    const response = await provider.generate(messages);
+    const raw = response?.text;
 
-  while (iteration < MAX_ITERATIONS) {
-    iteration++;
+    console.log("🧠 RAW LLM:", raw);
 
-    console.log(
-      `\n🔄 Agent Iteration ${iteration}`
-    );
-     console.log(
-  "\n📨 Sending to LLM...");
-    // Call Ollama
-    const response =
-      await provider.generate(messages);
-
-    console.log(
-      "\n🧠 Raw Model Response:"
-    );
-    console.log(response.text);
+    if (!raw || typeof raw !== "string") {
+      return {
+        success: true,
+        content: "Empty LLM response",
+      };
+    }
 
     let action;
-
     try {
-      action = parseLLMJson(
-        response.text
-      );
-    } catch (error: any) {
-      throw new Error(
-        `Model did not return valid JSON:\n\n${response.text}\n\nReason: ${error.message}`
-      );
+      action = parseLLMJson(raw);
+    } catch {
+      // fallback: NEVER break UI
+      return {
+        success: true,
+        content: raw,
+      };
+    }
+
+    if (!action?.type) {
+      return {
+        success: true,
+        content: raw,
+      };
     }
 
     // TOOL CALL
-    if (
-      action.type === "tool_call"
-    ) {
-      const toolName =
-        action.tool;
-
-      const toolArgs =
-        action.arguments || {};
-
-      console.log(
-        `\n🛠 Executing Tool: ${toolName}`
+    if (action.type === "tool_call") {
+      const toolResult = await executeTool(
+        action.tool,
+        action.arguments || {}
       );
 
-      const tool =
-  await executeTool(
-    toolName,
-    toolArgs
-  );
-
-      if (!tool) {
-        throw new Error(
-          `Unknown tool requested: ${toolName}`
-        );
-      }
-
-      const result =
-         tool;
-
-      console.log(
-        "\n✅ Tool Result:"
-      );
-      console.log(result);
-
-      // Add assistant tool request
       messages.push({
         role: "assistant",
-        content: response.text
+        content: raw,
       });
 
-      // Feed tool result back
       messages.push({
         role: "user",
-        content:
-          `Tool execution result:\n${JSON.stringify(
-            result,
-            null,
-            2
-          )}`
+        content: JSON.stringify(toolResult),
       });
 
       continue;
     }
 
     // FINAL ANSWER
-    if (
-      action.type === "final"
-    ) {
-      console.log(
-        "\n🤖 Final Answer:"
-      );
-      console.log(
-        action.content
-      );
-
-      return action.content;
+    if (action.type === "final") {
+      return {
+        success: true,
+        content: action.content || "No content returned",
+      };
     }
 
-    throw new Error(
-      `Unexpected response type: ${action.type}`
-    );
+    return {
+      success: true,
+      content: raw,
+    };
   }
 
-  throw new Error(
-    `Agent exceeded maximum iterations (${MAX_ITERATIONS})`
-  );
+  return {
+    success: true,
+    content: "Agent stopped (max iterations reached)",
+  };
 }

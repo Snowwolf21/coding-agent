@@ -1,16 +1,15 @@
-export declare function orchestrate(task: string): Promise<{
+interface OrchestrateResult {
     success: boolean;
-    attempt: number;
-    filePath: any;
-    prSummary: string;
-    result: any;
-    error?: never;
-} | {
-    success: boolean;
-    error: string;
-    attempt?: never;
-    filePath?: never;
-    prSummary?: never;
-    result?: never;
-}>;
+    attempt?: number;
+    filePath?: string;
+    prSummary?: string;
+    result?: string;
+    error?: string;
+}
+/**
+ * Coordinates planning, coding, applying edits, running tests, checking quality metrics,
+ * saving memory context, summarizing work, and committing modifications to the repository.
+ */
+export declare function orchestrate(task: string): Promise<OrchestrateResult>;
+export {};
 //# sourceMappingURL=orchestrator.d.ts.map

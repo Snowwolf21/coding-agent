@@ -44,9 +44,9 @@ add_import: async ({
  
   );
 },
- run_tests: async () => {
-  runTests()
-},
+  run_tests: async () => {
+    return runTests();
+  },
 git_status: () =>
   gitStatus(),
 

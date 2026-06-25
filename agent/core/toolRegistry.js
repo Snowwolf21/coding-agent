@@ -21,7 +21,7 @@ export const toolRegistry = {
         return await addImport(filePath, importName, moduleSpecifier);
     },
     run_tests: async () => {
-        runTests();
+        return runTests();
     },
     git_status: () => gitStatus(),
     git_commit: ({ message, }) => gitCommit(message),

@@ -1,62 +1,6 @@
-import dotenv from "dotenv";
-import {agent} from "./agent.js";
-import ReadLine from "node:readline";
-import { llm } from "./client.js";
-import { fileURLToPath } from "node:url";
-
-dotenv.config();
-
-async function main() {
-  const response = await llm.generate([
-    {
-      role: "user",
-      content: "What is the meaning of life?"
-    }
-  ]);
-
-  console.log(response.text);
+```json
+{
+  "type": "final",
+  "content": "Web development is a broad field that involves creating and maintaining websites. It encompasses various aspects including front-end and back-end development, database management, and testing. The process typically starts with understanding the basics of HTML, CSS, and JavaScript for designing user interfaces. Front-end developers focus on making the website visually appealing and functional, while back-end developers handle server-side logic and data management. Database management ensures efficient storage and retrieval of data. Finally, thorough testing across different platforms is followed by deployment to make the website accessible online."
 }
-
-main().catch(console.error);
-
-agent(["What is the meaning of life?"]).catch(console.error);
-
-// ...rest of your readline code...
-
-// ✅ Clean Node.js Native Entrypoint Verification Check
-const currentFilePath = fileURLToPath(import.meta.url);
-const isCurrentEntryScript = process.argv[1] === currentFilePath;
-
-if (isCurrentEntryScript) {
-  const rl = ReadLine.createInterface({
-    input: process.stdin,
-    output: process.stdout
-  });
-
-  console.log("🤖 Coding Agent Initialized. Type your request below (or type 'exit' to quit):");
-
-  function promptUser() {
-    rl.question('\nYou: ', async (userInput) => {
-      if (userInput.toLowerCase() === 'exit') {
-        rl.close();
-        return;
-      }
-
-      if (!userInput.trim()) {
-        promptUser();
-        return;
-      }
-
-      try {
-        console.log("⏳ Processing request...");
-        await agent([userInput]); 
-      } catch (error) {
-        console.error("❌ Agent execution error:", error);
-      }
-
-      promptUser(); // Loop back for next interaction turn
-    });
-  }
-
-  promptUser();
-}
+```

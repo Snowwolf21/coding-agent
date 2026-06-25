@@ -1,8 +1,11 @@
 export declare class OllamaProvider {
     model: string;
-    generate(messages: any[]): Promise<{
+    private normalizeMessages;
+    private withSystemPrompt;
+    generate(messages: any): Promise<{
         text: string;
         raw?: any;
     }>;
+    stream(messages: any): AsyncGenerator<string>;
 }
 //# sourceMappingURL=ollamaProvider.d.ts.map

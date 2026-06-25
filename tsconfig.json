@@ -40,6 +40,10 @@
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",
     "skipLibCheck": true,
-      "forceConsistentCasingInFileNames": true 
-  }
+    "forceConsistentCasingInFileNames": true
+  },
+  "exclude": [
+    "frontend",
+    "code-ai-assistant"
+  ]
 }

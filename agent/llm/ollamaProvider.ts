@@ -1,12 +1,49 @@
 import fetch from "node-fetch";
 import { toolPrompt } from "../prompts/toolPrompt.js";
 import { validateMessages } from "../utils/validateMessages.js";
+
+type OllamaMessage = { role: string; content: string };
+
 export class OllamaProvider {
   model = "qwen2.5-coder:7b"; 
 
+  private normalizeMessages(messages: any): OllamaMessage[] {
+    if (typeof messages === "string") {
+      return [{ role: "user", content: messages }];
+    }
+
+    if (Array.isArray(messages)) {
+      return messages.map((msg) => {
+        if (typeof msg === "string") {
+          return { role: "user", content: msg };
+        }
+
+        return msg;
+      });
+    }
+
+    if (messages && typeof messages === "object" && messages.role && messages.content) {
+      return [messages];
+    }
+
+    throw new Error("Invalid format for messages passed to OllamaProvider.generate");
+  }
+
+  private withSystemPrompt(messages: OllamaMessage[]): OllamaMessage[] {
+    return [
+      {
+        role: "system",
+        content:
+          toolPrompt ||
+          "You are a coding assistant. Respond with either JSON tool calls or direct answers."
+      },
+      ...messages
+    ];
+  }
+
   async generate(messages: any): Promise<{ text: string; raw?: any }> {
     // 1. Defensively convert incoming messages to correct Ollama API shape
-    let normalizedMessages: Array<{ role: string; content: string }> = [];
+    let normalizedMessages: OllamaMessage[] = [];
      const check = validateMessages(messages);
 
      if (!check.ok) {
@@ -21,34 +58,10 @@ export class OllamaProvider {
     })
   };
 }
-    if (typeof messages === "string") {
-      // If a single string was passed directly
-      normalizedMessages = [{ role: "user", content: messages }];
-    } else if (Array.isArray(messages)) {
-      // If an array was passed, ensure every element is an object
-      normalizedMessages = messages.map((msg) => {
-        if (typeof msg === "string") {
-          return { role: "user", content: msg };
-        }
-        return msg;
-      });
-    } else if (messages && typeof messages === "object" && messages.role && messages.content) {
-      // If a single message object was passed
-      normalizedMessages = [messages];
-    } else {
-      throw new Error("Invalid format for messages passed to OllamaProvider.generate");
-    }
+    normalizedMessages = this.normalizeMessages(messages);
 
     // 2. Build the final payload with the system prompt
-    const finalMessages = [
-      {
-        role: "system",
-        content:
-          toolPrompt ||
-          "You are a coding assistant. Respond with either JSON tool calls or direct answers."
-      },
-      ...normalizedMessages
-    ];
+    const finalMessages = this.withSystemPrompt(normalizedMessages);
     if (!Array.isArray(messages)) {
   throw new Error("Messages must be an array");
 }
@@ -103,5 +116,70 @@ for (const msg of messages) {
     return {
       text
     };
+  }
+
+  async *stream(messages: any): AsyncGenerator<string> {
+    const check = validateMessages(messages);
+
+    if (!check.ok) {
+      throw new Error(check.error);
+    }
+
+    const response = await fetch("http://localhost:11434/api/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: this.model,
+        messages: this.withSystemPrompt(this.normalizeMessages(messages)),
+        stream: true,
+        options: {
+          temperature: 0.2
+        }
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Ollama HTTP error:\n" + await response.text());
+    }
+
+    if (!response.body) {
+      throw new Error("Ollama returned no response body");
+    }
+
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    for await (const chunk of response.body as any) {
+      buffer += decoder.decode(chunk, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() ?? "";
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+
+        const data = JSON.parse(trimmed);
+        const token = data?.message?.content ?? data?.response ?? "";
+
+        if (token) {
+          yield token;
+        }
+
+        if (data?.done) {
+          return;
+        }
+      }
+    }
+
+    const trailing = buffer.trim();
+    if (trailing) {
+      const data = JSON.parse(trailing);
+      const token = data?.message?.content ?? data?.response ?? "";
+      if (token) {
+        yield token;
+      }
+    }
   }
 }

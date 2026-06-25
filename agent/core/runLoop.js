@@ -1,6 +1,6 @@
 import { llm } from "../llm/index.js";
 import { conversationHistory } from "../core/types.js";
-import { tryParseOutput } from "./parseOutput.js";
+import { parseLLMJson } from "../utils/jsonParser.js";
 import { executeAction } from "./executeAction.js";
 // import { handleToolCall } from "./handleToolCall.js";
 import { stateAgent } from "../state.js";
@@ -28,7 +28,7 @@ export async function runLoop(input) {
         const textOutput = response.text;
         console.log("AI:", textOutput);
         // 1. JSON ACTION PARSER
-        const parsed = tryParseOutput(textOutput);
+        const parsed = parseLLMJson(textOutput);
         if (parsed) {
             executeAction(parsed);
         }

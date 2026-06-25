@@ -1,7 +1,7 @@
 import { conversationHistory } from './types.js';
 import { llm } from "../llm/index.js";
 import { handleToolCall } from "./handleToolCall.js";
-import { tryParseOutput } from "./parseOutput.js";
+import { parseLLMJson } from '../utils/jsonParser.js';
 
 export async function runToolLoop() {
   let hasToolCall = true;
@@ -16,7 +16,7 @@ export async function runToolLoop() {
 
     const output = response.text;
 
-    const parsed = tryParseOutput(output);
+    const parsed = parseLLMJson(output);
 
     if (parsed?.tool) {
       hasToolCall = true;
