@@ -13,12 +13,65 @@ interface SendMessageContext {
   setMessage: Dispatch<SetStateAction<string>>;
 }
 
-type SseEvent = {
-  event: string;
-  data: any;
-};
 
-async function readSse(response: Response, onEvent: (event: SseEvent) => void) {
+type TokenEvent = { event: "token"; data: { token: string } };
+type ErrorEvent = { event: "error"; data: { message: string } };
+type OtherEvent = { event: string; data: unknown };
+
+type SseEvent = TokenEvent | ErrorEvent | OtherEvent;
+
+// ---------- Detect coding tasks ----------
+function isCodingTask(prompt: string): boolean {
+  const text = prompt.toLowerCase();
+
+  const keywords = [
+    "build",
+    "create",
+    "implement",
+    "generate",
+    "write",
+    "code",
+    "fix",
+    "bug",
+    "debug",
+    "edit",
+    "modify",
+    "update",
+    "refactor",
+    "optimize",
+    "feature",
+    "component",
+    "function",
+    "class",
+    "typescript",
+    "javascript",
+    "react",
+    "next",
+    "node",
+    "express",
+    "api",
+    "server",
+    "frontend",
+    "backend",
+    "database",
+    "sql",
+    "mongodb",
+    "prisma",
+    "tailwind",
+    "css",
+    "html",
+    "test",
+    "unit test",
+    "integration test"
+  ];
+
+  return keywords.some((keyword) => text.includes(keyword));
+}
+
+async function readSse(
+  response: Response,
+  onEvent: (event: SseEvent) => void
+) {
   if (!response.body) {
     throw new Error("Streaming response did not include a body");
   }
@@ -33,32 +86,38 @@ async function readSse(response: Response, onEvent: (event: SseEvent) => void) {
 
     for (const frame of frames) {
       const lines = frame.split("\n");
-      const event =
-        lines.find((line) => line.startsWith("event:"))?.slice(6).trim() ||
-        "message";
-      const dataLines = lines
-        .filter((line) => line.startsWith("data:"))
-        .map((line) => line.slice(5).trim());
-      const rawData = dataLines.join("\n");
 
-      if (!rawData) continue;
+      const event =
+        lines.find((l) => l.startsWith("event:"))?.slice(6).trim() ||
+        "message";
+
+      const dataLines = lines
+        .filter((l) => l.startsWith("data:"))
+        .map((l) => l.slice(5).trim());
+
+      if (!dataLines.length) continue;
 
       onEvent({
         event,
-        data: JSON.parse(rawData),
+        data: JSON.parse(dataLines.join("\n")),
       });
     }
   }
 
   while (true) {
     const { value, done } = await reader.read();
+
     if (done) break;
 
-    buffer += decoder.decode(value, { stream: true });
+    buffer += decoder.decode(value, {
+      stream: true,
+    });
+
     drainBuffer();
   }
 
   buffer += decoder.decode();
+
   if (buffer.trim()) {
     buffer += "\n\n";
     drainBuffer(true);
@@ -76,60 +135,92 @@ export default function handleSendMessages({
 }: SendMessageContext) {
   return async function handleSendMessage() {
     const outgoingMessage = message.trim();
+
     if (!outgoingMessage) return;
 
-    setChat((p) => [...p, { role: "user", content: outgoingMessage }]);
+    setChat((prev) => [
+      ...prev,
+      {
+        role: "user",
+        content: outgoingMessage,
+      },
+    ]);
+
     setMessage("");
     setLoading(true);
 
     try {
+      // -----------------------------
+      // Streaming chat mode
+      // -----------------------------
       if (runMode === "direct-chat") {
-        let streamedText = "";
-        let receivedToken = false;
+        let streamed = "";
+        let received = false;
 
-        setChat((p) => [...p, { role: "assistant", content: "" }]);
-
-        const response = await fetch(API_BASE + "/chat/stream", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "text/event-stream",
+        setChat((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            content: "",
           },
-          body: JSON.stringify({
-            prompt: outgoingMessage,
-            filePath,
-            code,
-          }),
-        });
+        ]);
+
+        const response = await fetch(
+          API_BASE + "/chat/stream",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Accept: "text/event-stream",
+            },
+            body: JSON.stringify({
+              prompt: outgoingMessage,
+            }),
+          }
+        );
 
         if (!response.ok) {
-          throw new Error(`Request failed with status ${response.status}`);
+          throw new Error(
+            `HTTP ${response.status}`
+          );
         }
 
-        await readSse(response, ({ event, data }) => {
-          if (event === "token") {
-            receivedToken = true;
-            streamedText += data.token ?? "";
-            setLoading(false);
-            setChat((p) =>
-              p.map((msg, index) =>
-                index === p.length - 1
-                  ? { ...msg, content: streamedText }
-                  : msg
-              )
-            );
-          }
+       await readSse(response, ({ event, data }) => {
+  if (event === "token") {
+    received = true;
 
-          if (event === "error") {
-            throw new Error(data.message || "Streaming request failed");
-          }
-        });
+    const tokenData = data as { token: string };
 
-        if (!receivedToken) {
-          setChat((p) =>
-            p.map((msg, index) =>
-              index === p.length - 1
-                ? { ...msg, content: "No response from agent" }
+    streamed += tokenData.token ?? "";
+
+    setChat((prev) =>
+      prev.map((msg, index) =>
+        index === prev.length - 1
+          ? {
+              ...msg,
+              content: streamed,
+            }
+          : msg
+      )
+    );
+  }
+
+  if (event === "error") {
+    const errorData = data as { message: string };
+
+    throw new Error(errorData.message);
+  }
+});
+
+        if (!received) {
+          setChat((prev) =>
+            prev.map((msg, index) =>
+              index === prev.length - 1
+                ? {
+                    ...msg,
+                    content:
+                      "No response received.",
+                  }
                 : msg
             )
           );
@@ -138,47 +229,63 @@ export default function handleSendMessages({
         return;
       }
 
-      const endpoint =
-        runMode === "orchestrate" ? "/orchestrate" : "/chat";
+      // -----------------------------------------
+      // Automatic routing
+      // -----------------------------------------
+      const endpoint = isCodingTask(outgoingMessage)
+        ? "/orchestrate"
+        : "/chat";
 
-      const response = await fetch(API_BASE + endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt: outgoingMessage,
-          filePath,
-          code,
-        }),
-      });
+      console.log(
+        "Routing to:",
+        endpoint
+      );
+
+      const response = await fetch(
+        API_BASE + endpoint,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+          body: JSON.stringify({
+            prompt: outgoingMessage,
+            filePath,
+            code,
+          }),
+        }
+      );
 
       const data = await response.json();
-    console.log("RESPONSE DATA:", data);
-      if (!data.success) {
-  throw new Error(
-    data.error ||
-    data.message ||
-    "Request failed"
-  );
-}
-      
-     const assistantMessage =
-  data.content ??
-  data.message ??
-  data.result ??
-  data.response ??
-  "No response from agent";
 
-  console.log("MESSAGE:", data.message);
-      setChat((p) => [
-        ...p,
+      console.log("SERVER:", data);
+
+      if (!data.success) {
+        throw new Error(
+          data.error ||
+            data.message ||
+            "Request failed"
+        );
+      }
+
+      const assistantMessage =
+        data.message ??
+        data.content ??
+        data.result ??
+        data.response ??
+        "No response";
+
+      setChat((prev) => [
+        ...prev,
         {
           role: "assistant",
           content: assistantMessage,
         },
       ]);
-    } catch (err: any) {
-      setChat((p) => [
-        ...p,
+    } catch (err) {
+      setChat((prev) => [
+        ...prev,
         {
           role: "system",
           content: `❌ ${err.message}`,

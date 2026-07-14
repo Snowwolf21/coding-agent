@@ -61,30 +61,44 @@ app.post("/orchestrate", async (req, res) => {
 
 // CHAT
 app.post("/chat", async (req, res) => {
-  try {
-    const { prompt } = req.body;
+ try {
+  const provider = new OllamaProvider();
 
-    const result = await agent([
-      {
-        role: "user",
-        content: prompt,
-      },
-    ]);
+  writeSse(res, "ready", {
+    success: true,
+  });
 
-    const latestSuggestion =
-      agentState.project.suggestions.at(-1);
+  for await (const token of provider.stream([
+    {
+      role: "user",
+      content: prompt,
+    },
+  ])) {
+    if (closed) break;
 
-    res.json({
-      success: true,
-      content:result.content,
-      editId: latestSuggestion?.id,
-    });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: error.message,
+    writeSse(res, "token", {
+      token,
     });
   }
+
+  if (!closed) {
+    writeSse(res, "done", {
+      success: true,
+    });
+
+    res.end();
+  }
+} catch (err: any) {
+  console.error(err);
+
+  if (!closed) {
+    writeSse(res, "error", {
+      message: err.message,
+    });
+
+    res.end();
+  }
+}
 });
 
 // STREAMING CHAT
@@ -110,30 +124,84 @@ app.post("/chat/stream", async (req, res) => {
     closed = true;
   });
 
+  // try {
+  //   const provider = new OllamaProvider();
+  //   writeSse(res, "ready", { success: true });
+
+  //   for await (const token of provider.stream([
+  //     { role: "user", content: prompt },
+  //   ])) {
+  //     if (closed) return;
+  //     writeSse(res, "token", { token });
+  //   }
+
+  //   if (!closed) {
+  //     writeSse(res, "done", { success: true });
+  //     res.end();
+  //   }
+  // } catch (err: any) {
+  //   if (!closed) {
+  //     writeSse(res, "error", {
+  //       success: false,
+  //       message: err.message,
+  //     });
+  //     res.end();
+  //   }
+  // }
   try {
-    const provider = new OllamaProvider();
-    writeSse(res, "ready", { success: true });
+  console.log("1. Creating provider");
 
-    for await (const token of provider.stream([
-      { role: "user", content: prompt },
-    ])) {
-      if (closed) return;
-      writeSse(res, "token", { token });
-    }
+  const provider = new OllamaProvider();
 
-    if (!closed) {
-      writeSse(res, "done", { success: true });
-      res.end();
-    }
-  } catch (err: any) {
-    if (!closed) {
-      writeSse(res, "error", {
-        success: false,
-        message: err.message,
-      });
-      res.end();
-    }
+  console.log("2. Provider created");
+
+  writeSse(res, "ready", {
+    success: true,
+  });
+
+  console.log("3. Ready event sent");
+
+  console.log("4. Stream created");
+
+for await (const token of provider.stream([
+  {
+    role: "user",
+    content: prompt,
+  },
+])) {
+console.log("TYPE:", typeof token);
+console.log("VALUE:", JSON.stringify(token));
+console.log("LENGTH:", token.length);
+
+  
+console.log("closed =", closed);
+
+if (closed) {
+  console.log("CLIENT CLOSED CONNECTION");
+  return;
+}
+
+console.log("ABOUT TO WRITE");
+
+ 
+
+  writeSse(res, "token", { token });
+
+  console.log("DONE WRITING");
+}
+
+  console.log("5. Stream finished");
+
+  if (!closed) {
+    writeSse(res, "done", {
+      success: true,
+    });
+
+    res.end();
   }
+} catch (err: any) {
+  console.error(err);
+}
 });
 
 // ACCEPT EDIT SUGGESTION

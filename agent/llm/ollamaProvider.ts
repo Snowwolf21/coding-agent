@@ -1,4 +1,4 @@
-import fetch from "node-fetch";
+
 import { toolPrompt } from "../prompts/toolPrompt.js";
 import { validateMessages } from "../utils/validateMessages.js";
 
@@ -118,68 +118,69 @@ for (const msg of messages) {
     };
   }
 
-  async *stream(messages: any): AsyncGenerator<string> {
-    const check = validateMessages(messages);
+async *stream(messages: any): AsyncGenerator<string> {
+  const response = await fetch("http://localhost:11434/api/chat", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: this.model,
+      // messages: this.withSystemPrompt(
+      //   this.normalizeMessages(messages)
+      // ),
+      messages: this.normalizeMessages(messages),
+      stream: true,
+    }),
+  });
 
-    if (!check.ok) {
-      throw new Error(check.error);
-    }
+  if (!response.ok) {
+    throw new Error(await response.text());
+  }
 
-    const response = await fetch("http://localhost:11434/api/chat", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: this.model,
-        messages: this.withSystemPrompt(this.normalizeMessages(messages)),
-        stream: true,
-        options: {
-          temperature: 0.2
-        }
-      }),
-    });
+  if (!response.body) {
+    throw new Error("No response body from Ollama");
+  }
 
-    if (!response.ok) {
-      throw new Error("Ollama HTTP error:\n" + await response.text());
-    }
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
 
-    if (!response.body) {
-      throw new Error("Ollama returned no response body");
-    }
+  let buffer = "";
 
-    const decoder = new TextDecoder();
-    let buffer = "";
+  while (true) {
+    const { done, value } = await reader.read();
 
-    for await (const chunk of response.body as any) {
-      buffer += decoder.decode(chunk, { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop() ?? "";
+    if (done) break;
 
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed) continue;
+    buffer += decoder.decode(value, { stream: true });
 
-        const data = JSON.parse(trimmed);
-        const token = data?.message?.content ?? data?.response ?? "";
+    let newlineIndex: number;
 
-        if (token) {
-          yield token;
-        }
+    while ((newlineIndex = buffer.indexOf("\n")) !== -1) {
+      const line = buffer.slice(0, newlineIndex).trim();
+      buffer = buffer.slice(newlineIndex + 1);
 
-        if (data?.done) {
-          return;
-        }
+      if (!line) continue;
+
+      let json: any;
+
+      try {
+        json = JSON.parse(line);
+      } catch {
+        // Wait for more data if JSON is incomplete
+        buffer = line + "\n" + buffer;
+        break;
       }
-    }
 
-    const trailing = buffer.trim();
-    if (trailing) {
-      const data = JSON.parse(trailing);
-      const token = data?.message?.content ?? data?.response ?? "";
-      if (token) {
-        yield token;
+      if (json.message?.content) {
+        yield json.message.content;
+      }
+
+      if (json.done) {
+        return;
       }
     }
   }
+}
+
 }

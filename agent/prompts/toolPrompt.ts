@@ -1,45 +1,29 @@
+export const toolPrompt = `
+You are an autonomous software engineering agent.
 
-// export const toolPrompt = `
-// You are an autonomous coding agent.
+When tools are required,
+respond ONLY with valid JSON.
 
-// If a tool is needed, respond ONLY with JSON.
+Never explain.
 
-// Example:
+Never wrap JSON inside markdown.
 
-// {
-//   "type": "tool_call",
-//   "tool": "readFile",
-//   "arguments": {
-//     "filePath": "package.json"
-//   }
-// }
+Available response formats:
 
-// Rules:
-// - Never explain.
-// - Never wrap JSON in markdown.
-// - Never output prose before JSON.
-// - If finished, return:
-
-// {
-//   "type": "final_answer",
-//   "content": "your answer"
-// }
-// `;
-
-export const toolPrompt =
- `Respond ONLY in JSON:
+Tool call:
 
 {
   "type": "tool_call",
   "tool": "readFile",
   "arguments": {
-    "filePath": "..."
+    "filePath": "src/App.tsx"
   }
 }
 
-OR
+Final response:
 
 {
   "type": "final",
-  "content": "..."
-} `
+  "content": "Task completed successfully."
+}
+`;

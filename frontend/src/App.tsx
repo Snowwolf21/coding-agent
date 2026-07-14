@@ -6,7 +6,7 @@ import getLanguageByExtension from "./components/getLanguageExtention";
 import type { WorkspaceFile, ChatMessage } from "./types";
 import loadFiles from "./components/loadFile";
 import saveFiles from "./components/saveFile";
-import handleSendMessages from "./components/handleSendMessage";
+import HandleSendMessages from "./components/handleSendMessage";
 import Button from "./components/button";
 import "./App.css";
 
@@ -53,7 +53,7 @@ type RunMode = "orchestrate" | "direct-chat";
 export default function App() {
   const [message, setMessage] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
-  const [runMode, setRunMode] = useState<RunMode>("orchestrate");
+  const [runMode, setRunMode] = useState<RunMode>("direct-chat");
 
   const [chat, setChat] = useState<ChatMessage[]>(INITIAL_CHAT);
   const [files] = useState<WorkspaceFile[]>(INITIAL_FILES);
@@ -73,7 +73,7 @@ export default function App() {
     setChat,
   });
 
-  const handleSendMessage = handleSendMessages({
+  const handleSendMessage = HandleSendMessages({
     setChat,
     code,
     filePath,
