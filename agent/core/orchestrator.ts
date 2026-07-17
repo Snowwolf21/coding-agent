@@ -62,7 +62,7 @@ function parseReview(text: string): { passed: boolean; issues: string[] } {
  * Coordinates planning, coding, applying edits, running tests, checking quality metrics,
  * saving memory context, summarizing work, and committing modifications to the repository.
  */
-export async function orchestrate(task: string): Promise<OrchestrateResult> {
+export async function orchestrate(task: string, history: any[] = []): Promise<OrchestrateResult> {
   let activeTask = task;
 
   try {
@@ -75,7 +75,7 @@ export async function orchestrate(task: string): Promise<OrchestrateResult> {
 
       // 2. Generate code edits based on the plan
       console.log("💻 Coding agent generating implementation...");
-      const coderResponse = await coderAgent(activeTask, plan);
+      const coderResponse = await coderAgent(activeTask, plan, history);
 
       const result =
         typeof coderResponse === "string"

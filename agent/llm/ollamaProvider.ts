@@ -126,11 +126,14 @@ async *stream(messages: any): AsyncGenerator<string> {
     },
     body: JSON.stringify({
       model: this.model,
-      // messages: this.withSystemPrompt(
-      //   this.normalizeMessages(messages)
-      // ),
-      messages: this.normalizeMessages(messages),
+      messages: this.withSystemPrompt(
+        this.normalizeMessages(messages)
+      ),
       stream: true,
+      options: {
+        temperature: 0.2,
+        num_ctx: 4096,
+      }
     }),
   });
 
