@@ -9,6 +9,11 @@ import "./App.css";
 
 type RunMode = "orchestrate" | "direct-chat";
 
+const LANGUAGES = [
+  "javascript", "typescript", "html", "css", "json", "markdown",
+  "python", "cpp", "csharp", "java", "rust", "go", "php", "ruby", "sql", "yaml", "xml"
+];
+
 function WorkspaceInner() {
   const {
     filePath,
@@ -33,6 +38,13 @@ function WorkspaceInner() {
 
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [activeTab, setActiveTab] = useState<"chat" | "editor">("chat");
+  const [prevFilePath, setPrevFilePath] = useState(filePath);
+  const [editorLanguage, setEditorLanguage] = useState(getLanguageByExtension(filePath));
+
+  if (filePath !== prevFilePath) {
+    setPrevFilePath(filePath);
+    setEditorLanguage(getLanguageByExtension(filePath));
+  }
 
   useEffect(() => {
     const handleResize = () => {
@@ -247,7 +259,21 @@ function WorkspaceInner() {
           {/* Editor Wrapper */}
           <div className="flex-1 flex flex-col min-h-0">
             <div className="border-b border-slate-800/80 bg-slate-950/30 px-4 py-2.5 text-xs text-slate-400 flex items-center justify-between font-mono">
-              <span>📝 {filePath} | {getLanguageByExtension(filePath)}</span>
+              <div className="flex items-center gap-2">
+                <span>📝 {filePath}</span>
+                <span className="text-slate-700">|</span>
+                <select
+                  value={editorLanguage}
+                  onChange={(e) => setEditorLanguage(e.target.value)}
+                  className="bg-slate-900 border border-slate-800 text-[10px] uppercase font-bold text-slate-300 rounded px-1.5 py-0.5 outline-none cursor-pointer focus:border-indigo-500/80"
+                >
+                  {LANGUAGES.map((lang) => (
+                    <option key={lang} value={lang}>
+                      {lang}
+                    </option>
+                  ))}
+                </select>
+              </div>
               <div className="flex items-center gap-4">
                 <Button
                   onClick={saveFile}
@@ -264,7 +290,7 @@ function WorkspaceInner() {
             <div className="flex-1 min-h-0 bg-[#1e293b]">
               <Editor
                 height="100%"
-                language={getLanguageByExtension(filePath)}
+                language={editorLanguage}
                 theme="vs-dark"
                 value={code}
                 onChange={(val) => setCode(val || "")}
