@@ -51,7 +51,7 @@ function parseReview(text) {
  * Coordinates planning, coding, applying edits, running tests, checking quality metrics,
  * saving memory context, summarizing work, and committing modifications to the repository.
  */
-export async function orchestrate(task) {
+export async function orchestrate(task, history = []) {
     let activeTask = task;
     try {
         for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
@@ -61,14 +61,14 @@ export async function orchestrate(task) {
             const plan = await plannerAgent(activeTask);
             // 2. Generate code edits based on the plan
             console.log("💻 Coding agent generating implementation...");
-            const coderResponse = await coderAgent(activeTask, plan);
+            const coderResponse = await coderAgent(activeTask, plan, history);
             const result = typeof coderResponse === "string"
                 ? coderResponse
                 : (coderResponse ?? {}).result || "";
             // Safely extract filePath with a robust fallback
             const filePath = typeof coderResponse === "object" && coderResponse !== null
-                ? coderResponse.filePath || "src/index.ts"
-                : "src/index.ts";
+                ? coderResponse.filePath || "agent/index.ts"
+                : "agent/index.ts";
             // 3. Apply generated edits
             console.log(`💾 Applying changes to: ${filePath}`);
             const session = new EditSession();

@@ -1,5 +1,5 @@
 import { runLoop } from "../core/runLoop.js";
-export async function coderAgent(task, plan) {
+export async function coderAgent(task, plan, history = []) {
     const prompt = `
 Task:
 ${task}
@@ -9,6 +9,6 @@ ${plan}
 
 Implement the task using tools.
 `;
-    return await runLoop(prompt);
+    return await runLoop(prompt, history);
 }
 //# sourceMappingURL=coderAgent.js.map

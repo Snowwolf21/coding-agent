@@ -3,6 +3,9 @@ import cors from "cors";
 import { promises as fs } from "fs";
 import fsSync from "fs";
 import path from "path";
+import dotenv from "dotenv";
+
+dotenv.config();
 import { orchestrate } from "./core/orchestrator.js";
 import { acceptEdit } from "./core/applyEditActions.js";
 import { rejectEdit } from "./core/rejectEditAction.js";
@@ -10,10 +13,15 @@ import { OllamaProvider } from "./llm/ollamaProvider.js";
 
 const app = express();
 
-app.use(cors());
+app.use(
+  cors({
+    origin: process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(",") : true,
+    credentials: true,
+  })
+);
 app.use(express.json());
 
-const WORKSPACE_ROOT = "/Users/snowwolf/coding-agent";
+const WORKSPACE_ROOT = process.env.WORKSPACE_ROOT || path.resolve(process.cwd());
 
 // Path safety check to block directory traversal attacks
 function isPathSafe(targetPath: string): boolean {
@@ -329,9 +337,9 @@ app.use((_, res) => {
   });
 });
 
-const PORT = 3001;
-const HOST = "127.0.0.1";
+const PORT = process.env.PORT || 3001;
+const HOST = process.env.HOST || "0.0.0.0";
 
-app.listen(PORT, HOST, () => {
+app.listen(Number(PORT), HOST, () => {
   originalLog(`🚀 Server running on http://${HOST}:${PORT}`);
 });

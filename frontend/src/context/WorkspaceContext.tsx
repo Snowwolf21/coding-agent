@@ -4,6 +4,7 @@ import { WorkspaceContext } from "./WorkspaceContextObject";
 import type { RunMode } from "./WorkspaceContextObject";
 
 const originalConsoleWarn = console.warn;
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:3001";
 
 export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -51,7 +52,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   // Fetch dynamic workspace files list from server
   const fetchFiles = async () => {
     try {
-      const response = await fetch("http://localhost:3001/list-files");
+      const response = await fetch(`${API_BASE}/list-files`);
       if (!response.ok) throw new Error("Could not contact files server");
       const data = await response.json();
       if (data.success && Array.isArray(data.files)) {
@@ -74,7 +75,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchFiles(); // Initial files load
 
-    const eventSource = new EventSource("http://localhost:3001/logs/stream");
+    const eventSource = new EventSource(`${API_BASE}/logs/stream`);
 
     eventSource.onmessage = (event) => {
       try {
@@ -104,7 +105,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     setFilePath(selectedPath);
     addLog(`📁 Opening file: ${selectedPath}...`);
     try {
-      const response = await fetch(`http://localhost:3001/read-file`, {
+      const response = await fetch(`${API_BASE}/read-file`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ filePath: selectedPath })
@@ -131,7 +132,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const saveFile = async () => {
     addLog(`📝 Saving file: ${filePath}...`);
     try {
-      const response = await fetch("http://localhost:3001/write-file", {
+      const response = await fetch(`${API_BASE}/write-file`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ filePath, content: code })
@@ -194,7 +195,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         const controller = new AbortController();
         abortControllerRef.current = controller;
 
-        const response = await fetch("http://localhost:3001/chat/stream", {
+        const response = await fetch(`${API_BASE}/chat/stream`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -270,7 +271,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
 
       // Orchestrate / Post Chat Mode
       const endpoint = isCodingTask(outgoingMessage) ? "/orchestrate" : "/chat";
-      const response = await fetch(`http://localhost:3001${endpoint}`, {
+      const response = await fetch(`${API_BASE}${endpoint}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

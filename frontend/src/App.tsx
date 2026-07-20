@@ -220,7 +220,7 @@ function WorkspaceInner() {
                 <div
                   className={`max-w-[95%] rounded-2xl px-4 py-3 shadow-md border ${
                     isUser
-                      ? "bg-gradient-to-br from-indigo-600 to-violet-700 text-white border-indigo-500/30 rounded-tr-sm"
+                      ? "bg-linear-to-br from-indigo-600 to-violet-700 text-white border-indigo-500/30 rounded-tr-sm"
                       : "bg-slate-900/60 border-slate-800/80 text-slate-200 rounded-tl-sm"
                   }`}
                 >

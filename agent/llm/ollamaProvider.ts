@@ -73,7 +73,8 @@ for (const msg of messages) {
   }
 }
 
-    const response = await fetch("http://localhost:11434/api/chat", {
+    const base = (process.env.OLLAMA_BASE_URL || "http://localhost:11434").replace(/\/$/, "");
+    const response = await fetch(`${base}/api/chat`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -119,7 +120,8 @@ for (const msg of messages) {
   }
 
 async *stream(messages: any): AsyncGenerator<string> {
-  const response = await fetch("http://localhost:11434/api/chat", {
+  const base = (process.env.OLLAMA_BASE_URL || "http://localhost:11434").replace(/\/$/, "");
+  const response = await fetch(`${base}/api/chat`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
