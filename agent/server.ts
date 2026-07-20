@@ -13,13 +13,51 @@ import { OllamaProvider } from "./llm/ollamaProvider.js";
 
 const app = express();
 
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(",")
+  : ["http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173", "http://localhost:3001"];
+
 app.use(
   cors({
-    origin: process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(",") : true,
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.includes("*")) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
   })
 );
 app.use(express.json());
+
+// Middleware to verify Bearer Auth token if API_KEY is set in environment
+const authenticateRequest = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) {
+    return next();
+  }
+
+  const authHeader = req.headers.authorization;
+  const headerToken = authHeader && authHeader.startsWith("Bearer ") ? authHeader.substring(7) : null;
+  const queryToken = req.query.token as string | undefined;
+
+  const token = headerToken || queryToken;
+
+  if (token !== apiKey) {
+    res.status(401).json({ success: false, error: "Unauthorized: Invalid API key" });
+    return;
+  }
+  next();
+};
+
+app.use((req, res, next) => {
+  if (req.path === "/health") {
+    return next();
+  }
+  authenticateRequest(req, res, next);
+});
 
 const WORKSPACE_ROOT = process.env.WORKSPACE_ROOT || path.resolve(process.cwd());
 
@@ -27,7 +65,8 @@ const WORKSPACE_ROOT = process.env.WORKSPACE_ROOT || path.resolve(process.cwd())
 function isPathSafe(targetPath: string): boolean {
   if (!targetPath) return false;
   const absoluteTarget = path.resolve(WORKSPACE_ROOT, targetPath);
-  return absoluteTarget.startsWith(WORKSPACE_ROOT);
+  const relative = path.relative(WORKSPACE_ROOT, absoluteTarget);
+  return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
 }
 
 // Scoped Sessions Cache

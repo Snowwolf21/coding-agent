@@ -5,6 +5,14 @@ import type { RunMode } from "./WorkspaceContextObject";
 
 const originalConsoleWarn = console.warn;
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:3001";
+const API_KEY = import.meta.env.VITE_API_KEY || "";
+
+const getHeaders = () => {
+  return {
+    "Content-Type": "application/json",
+    ...(API_KEY ? { "Authorization": `Bearer ${API_KEY}` } : {})
+  };
+};
 
 export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -52,7 +60,9 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   // Fetch dynamic workspace files list from server
   const fetchFiles = async () => {
     try {
-      const response = await fetch(`${API_BASE}/list-files`);
+      const response = await fetch(`${API_BASE}/list-files`, {
+        headers: getHeaders()
+      });
       if (!response.ok) throw new Error("Could not contact files server");
       const data = await response.json();
       if (data.success && Array.isArray(data.files)) {
@@ -75,7 +85,8 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchFiles(); // Initial files load
 
-    const eventSource = new EventSource(`${API_BASE}/logs/stream`);
+    const tokenQuery = API_KEY ? `?token=${encodeURIComponent(API_KEY)}` : "";
+    const eventSource = new EventSource(`${API_BASE}/logs/stream${tokenQuery}`);
 
     eventSource.onmessage = (event) => {
       try {
@@ -107,7 +118,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     try {
       const response = await fetch(`${API_BASE}/read-file`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getHeaders(),
         body: JSON.stringify({ filePath: selectedPath })
       });
 
@@ -134,7 +145,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     try {
       const response = await fetch(`${API_BASE}/write-file`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getHeaders(),
         body: JSON.stringify({ filePath, content: code })
       });
 
@@ -198,7 +209,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         const response = await fetch(`${API_BASE}/chat/stream`, {
           method: "POST",
           headers: {
-            "Content-Type": "application/json",
+            ...getHeaders(),
             Accept: "text/event-stream",
           },
           body: JSON.stringify({
@@ -273,7 +284,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       const endpoint = isCodingTask(outgoingMessage) ? "/orchestrate" : "/chat";
       const response = await fetch(`${API_BASE}${endpoint}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getHeaders(),
         body: JSON.stringify({
           prompt: outgoingMessage,
           filePath,
