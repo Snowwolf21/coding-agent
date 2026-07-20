@@ -71,8 +71,26 @@ function CodeBlock({ code, language }: { code: string; language: string }) {
 export default function MarkdownRenderer({ content }: { content: string }) {
   if (!content) return null;
 
+  // Clean JSON response from agent if present
+  let displayContent = content;
+  try {
+    const parsed = JSON.parse(content);
+    if (parsed && typeof parsed === "object" && typeof parsed.content === "string") {
+      displayContent = parsed.content;
+    }
+  } catch {
+    const match = content.match(/"content"\s*:\s*"((?:[^"\\]|\\.)*)/);
+    if (match && match[1]) {
+      displayContent = match[1]
+        .replace(/\\"/g, '"')
+        .replace(/\\n/g, '\n')
+        .replace(/\\t/g, '\t')
+        .replace(/\\\\/g, '\\');
+    }
+  }
+
   // Split string into alternating non-code and code blocks
-  const parts = content.split(/```/g);
+  const parts = displayContent.split(/```/g);
 
   return (
     <div className="space-y-2 text-left leading-relaxed text-slate-300">

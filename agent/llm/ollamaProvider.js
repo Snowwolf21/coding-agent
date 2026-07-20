@@ -20,11 +20,12 @@ export class OllamaProvider {
         throw new Error("Invalid format for messages passed to OllamaProvider.generate");
     }
     withSystemPrompt(messages) {
+        const currentDateTime = new Date().toLocaleString("en-US", { timeZoneName: "short" });
+        const systemPromptWithTime = `${toolPrompt || "You are a coding assistant. Respond with either JSON tool calls or direct answers."}\n\nEnvironment Context:\n- Current Date and Time: ${currentDateTime}`;
         return [
             {
                 role: "system",
-                content: toolPrompt ||
-                    "You are a coding assistant. Respond with either JSON tool calls or direct answers."
+                content: systemPromptWithTime
             },
             ...messages
         ];

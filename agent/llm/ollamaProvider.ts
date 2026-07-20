@@ -30,12 +30,12 @@ export class OllamaProvider {
   }
 
   private withSystemPrompt(messages: OllamaMessage[]): OllamaMessage[] {
+    const currentDateTime = new Date().toLocaleString("en-US", { timeZoneName: "short" });
+    const systemPromptWithTime = `${toolPrompt || "You are a coding assistant. Respond with either JSON tool calls or direct answers."}\n\nEnvironment Context:\n- Current Date and Time: ${currentDateTime}`;
     return [
       {
         role: "system",
-        content:
-          toolPrompt ||
-          "You are a coding assistant. Respond with either JSON tool calls or direct answers."
+        content: systemPromptWithTime
       },
       ...messages
     ];
