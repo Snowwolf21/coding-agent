@@ -1,0 +1,36 @@
+name: Continuous Integration
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Codebase
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js Context
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Backend Dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: Run TypeScript Typecheck
+        run: npm run typecheck
+
+      - name: Run Backend Mocha Test Suites
+        run: npm test
+
+      - name: Install Frontend Dependencies
+        run: npm install --prefix frontend --legacy-peer-deps
+
+      - name: Build Frontend Application
+        run: npm run build --prefix frontend

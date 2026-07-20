@@ -1,45 +1,54 @@
-type LogLevel = "debug" | "info" | "warn" | "error";
+import winston from "winston";
+import path from "path";
 
-class Logger {
-  private getTimestamp(): string {
-    return new Date().toISOString();
+// Define structured format for console and file output
+const logFormat = winston.format.printf(({ level, message, timestamp, ...metadata }) => {
+  let msg = `[${timestamp}] [${level.toUpperCase()}] ${message}`;
+  if (Object.keys(metadata).length > 0 && !metadata.label) {
+    msg += ` | ${JSON.stringify(metadata)}`;
   }
+  return msg;
+});
 
-  private log(level: LogLevel, message: string, meta?: any) {
-    const formattedMeta = meta ? ` | ${JSON.stringify(meta)}` : "";
-    const logString = `[${this.getTimestamp()}] [${level.toUpperCase()}] ${message}${formattedMeta}`;
-    
-    switch (level) {
-      case "debug":
-        console.debug(logString);
-        break;
-      case "info":
-        console.log(logString);
-        break;
-      case "warn":
-        console.warn(logString);
-        break;
-      case "error":
-        console.error(logString);
-        break;
-    }
-  }
+const loggerInstance = winston.createLogger({
+  level: "info",
+  format: winston.format.combine(
+    winston.format.timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
+    winston.format.metadata({ fillExcept: ["message", "level", "timestamp", "label"] }),
+    logFormat
+  ),
+  transports: [
+    // Console output
+    new winston.transports.Console(),
+    // Combined log file target
+    new winston.transports.File({ 
+      filename: path.join("logs", "combined.log"),
+      level: "info"
+    }),
+    // Error-only log file target
+    new winston.transports.File({ 
+      filename: path.join("logs", "error.log"),
+      level: "error"
+    })
+  ]
+});
 
+class WinstonLogger {
   debug(message: string, meta?: any) {
-    this.log("debug", message, meta);
+    loggerInstance.debug(message, meta);
   }
 
   info(message: string, meta?: any) {
-    this.log("info", message, meta);
+    loggerInstance.info(message, meta);
   }
 
   warn(message: string, meta?: any) {
-    this.log("warn", message, meta);
+    loggerInstance.warn(message, meta);
   }
 
   error(message: string, meta?: any) {
-    this.log("error", message, meta);
+    loggerInstance.error(message, meta);
   }
 }
 
-export const logger = new Logger();
+export const logger = new WinstonLogger();
