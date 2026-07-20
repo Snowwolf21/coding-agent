@@ -1,1 +1,0 @@
-{"version":3,"file":"stripMarkdown.js","sourceRoot":"","sources":["stripMarkdown.ts"],"names":[],"mappings":"AAAA,MAAM,UAAU,aAAa,CAAC,IAAY;IACxC,OAAO,IAAI;SACR,OAAO,CAAC,cAAc,EAAE,EAAE,CAAC;SAC3B,OAAO,CAAC,UAAU,EAAE,EAAE,CAAC;SACvB,OAAO,CAAC,OAAO,EAAE,EAAE,CAAC;SACpB,IAAI,EAAE,CAAC;AACZ,CAAC"}

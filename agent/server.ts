@@ -10,6 +10,7 @@ import { orchestrate } from "./core/orchestrator.js";
 import { acceptEdit } from "./core/applyEditActions.js";
 import { rejectEdit } from "./core/rejectEditAction.js";
 import { OllamaProvider } from "./llm/ollamaProvider.js";
+import { logger } from "./utils/logger.js";
 
 const app = express();
 
@@ -380,5 +381,5 @@ const PORT = process.env.PORT || 3001;
 const HOST = process.env.HOST || "0.0.0.0";
 
 app.listen(Number(PORT), HOST, () => {
-  originalLog(`🚀 Server running on http://${HOST}:${PORT}`);
+  logger.info(`🚀 Server running on http://${HOST}:${PORT}`);
 });

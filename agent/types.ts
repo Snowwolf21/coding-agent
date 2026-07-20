@@ -6,9 +6,20 @@ export interface ToolCall {
 
 export interface FinalAnswer {
   type: "final";
-  content: any;
+  content: string;
 }
 
 export type AgentOutput =
   | ToolCall
   | FinalAnswer;
+
+export interface ChatMessage {
+  role: "user" | "assistant" | "system";
+  content: string;
+}
+
+export interface AgentAction {
+  action: "edit_file" | "run_tests";
+  path: string;
+  patch?: string;
+}

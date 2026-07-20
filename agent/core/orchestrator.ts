@@ -9,6 +9,7 @@ import { gitCommit } from "../tools/git.js";
 import { createPRSummary } from "../tools/createPRSummary.js";
 import { saveMemory } from "../memory/memoryStore.js";
 import { parseLLMJson } from "../utils/jsonParser.js";
+import { logger } from "../utils/logger.js";
 
 const MAX_RETRIES = 3;
 
@@ -89,7 +90,7 @@ export async function orchestrate(task: string, history: any[] = []): Promise<Or
           : "agent/index.ts";
 
       // 3. Apply generated edits
-      console.log(`💾 Applying changes to: ${filePath}`);
+      logger.info(`💾 Applying changes to: ${filePath}`);
       const session = new EditSession();
       session.add(filePath, result);
 
@@ -97,11 +98,11 @@ export async function orchestrate(task: string, history: any[] = []): Promise<Or
       await fs.writeFile(filePath, result, "utf8");
 
       // 4. Run suite tests
-      console.log("🧪 Running validation test suites...");
+      logger.info("🧪 Running validation test suites...");
       const testResult = await runTests();
 
       if (!testResult.passed) {
-        console.warn("⚠️ Test failures detected. Initiating debugger agent...");
+        logger.warn("⚠️ Test failures detected. Initiating debugger agent...");
         const fixesText = await debuggerAgent([testResult.output]);
         const testFixes = parseDebugger(fixesText);
 
@@ -111,12 +112,12 @@ export async function orchestrate(task: string, history: any[] = []): Promise<Or
       }
 
       // 5. Review generated code quality
-      console.log("🔍 Reviewing code quality metrics...");
+      logger.info("🔍 Reviewing code quality metrics...");
       const reviewText = await reviewerAgent(result);
       const review = parseReview(reviewText);
 
       if (!review.passed) {
-        console.warn("⚠️ Code review rejected implementation issues. Triggering fixes...");
+        logger.warn("⚠️ Code review rejected implementation issues. Triggering fixes...");
         const fixesText = await debuggerAgent(review.issues);
         const reviewFixes = parseDebugger(fixesText);
 
@@ -126,16 +127,16 @@ export async function orchestrate(task: string, history: any[] = []): Promise<Or
       }
 
       // 6. Save memories on successful implementations
-      console.log("🧠 Storing experience parameters into memory context...");
+      logger.info("🧠 Storing experience parameters into memory context...");
       await saveMemory(activeTask, result);
 
       // 7. Generate concise Pull Request summary logs
-      console.log("📄 Drafting PR metadata summarizations...");
+      logger.info("📄 Drafting PR metadata summarizations...");
       const summary = await session.getSummary();
       const prSummary = await createPRSummary(String(summary));
 
       // 8. Commit stable state to repository history
-      console.log("🚀 Committing finalized edits to repository branch...");
+      logger.info("🚀 Committing finalized edits to repository branch...");
       await gitCommit(`AI: ${task.slice(0, 60)}`);
 
       // 9. Successfully completed
